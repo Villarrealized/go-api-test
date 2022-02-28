@@ -15,6 +15,10 @@ type Todo struct {
 
 var todosCache []Todo
 
+/*
+Tries to return data first from the in-memory
+cache, then disk, and then the network.
+*/
 func FetchTodos() ([]Todo, error) {
 	if todosCache != nil {
 		fmt.Println("returning todos from cache...")

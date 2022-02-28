@@ -10,8 +10,17 @@ import (
 	"github.com/villarrealized/go-api-test/models"
 )
 
-const usersUrl string = "/api/users/"
-const todosUrl string = "/api/todos/"
+const (
+	usersUrl string = "/api/users"
+	// For users/:id
+	userUrl string = "/api/users/"
+)
+
+const (
+	todosUrl string = "/api/todos"
+	// For todos/:id
+	todoUrl string = "/api/todos/"
+)
 
 type jsonError struct {
 	Message string `json:"error"`
@@ -19,8 +28,11 @@ type jsonError struct {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc(usersUrl, handleUsers)
-	mux.HandleFunc(todosUrl, handleTodos)
+	mux.HandleFunc(usersUrl, UsersHandler)
+	mux.HandleFunc(userUrl, UserHandler)
+
+	mux.HandleFunc(todosUrl, TodosHandler)
+	mux.HandleFunc(todoUrl, TodoHandler)
 
 	server := &http.Server{
 		Addr:    ":8080",
@@ -29,47 +41,95 @@ func main() {
 	server.ListenAndServe()
 }
 
-func handleUsers(writer http.ResponseWriter, request *http.Request) {
+func UsersHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
-	stringId := strings.TrimPrefix(request.URL.Path, usersUrl)
 
-	id, err := strconv.Atoi(stringId)
-	if err == nil {
-		writeUser(id, writer, request)
+	switch request.Method {
+	case http.MethodGet:
+		users, err := models.FetchUsers()
+		if err != nil {
+			log.Println(err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writeJson(writer, users)
 		return
-	}
 
-	users, err := models.FetchUsers()
-	if err != nil {
-		log.Println(err)
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
+	default:
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeJson(writer, jsonError{"Method not allowed"})
 	}
-
-	writeJson(writer, users)
 }
 
-func handleTodos(writer http.ResponseWriter, request *http.Request) {
+// Handling for api/users/:id
+func UserHandler(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
-	stringId := strings.TrimPrefix(request.URL.Path, todosUrl)
+	stringId := strings.TrimPrefix(request.URL.Path, userUrl)
 
 	id, err := strconv.Atoi(stringId)
-	if err == nil {
-		writeTodo(id, writer, request)
-		return
-	}
-
-	todos, err := models.FetchTodos()
 	if err != nil {
-		log.Println(err)
-		writer.WriteHeader(http.StatusInternalServerError)
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		writeJson(writer, jsonError{"Invalid id"})
 		return
 	}
 
-	writeJson(writer, todos)
+	switch request.Method {
+	case http.MethodGet:
+		writeUser(writer, id)
+		return
+	default:
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeJson(writer, jsonError{"Method not allowed"})
+		return
+	}
 }
 
-func writeUser(id int, writer http.ResponseWriter, request *http.Request) {
+func TodosHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+
+	switch request.Method {
+	case http.MethodGet:
+		todos, err := models.FetchTodos()
+		if err != nil {
+			log.Println(err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writeJson(writer, todos)
+		return
+
+	default:
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeJson(writer, jsonError{"Method not allowed"})
+	}
+}
+
+// Handling for api/todos/:id
+func TodoHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	stringId := strings.TrimPrefix(request.URL.Path, todoUrl)
+
+	id, err := strconv.Atoi(stringId)
+	if err != nil {
+		writer.WriteHeader(http.StatusUnprocessableEntity)
+		writeJson(writer, jsonError{"Invalid id"})
+		return
+	}
+
+	switch request.Method {
+	case http.MethodGet:
+		writeTodo(writer, id)
+		return
+	default:
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeJson(writer, jsonError{"Method not allowed"})
+		return
+	}
+}
+
+func writeUser(writer http.ResponseWriter, id int) {
 	user, err := models.FetchUser(id)
 	if err != nil {
 		handleFetchRecordError(err, writer)
@@ -79,7 +139,7 @@ func writeUser(id int, writer http.ResponseWriter, request *http.Request) {
 	writeJson(writer, user)
 }
 
-func writeTodo(id int, writer http.ResponseWriter, request *http.Request) {
+func writeTodo(writer http.ResponseWriter, id int) {
 	todo, err := models.FetchTodo(id)
 	if err != nil {
 		handleFetchRecordError(err, writer)

@@ -17,6 +17,10 @@ type User struct {
 
 var usersCache []User
 
+/*
+Tries to return data first from the in-memory
+cache, then disk, and then the network.
+*/
 func FetchUsers() ([]User, error) {
 	if usersCache != nil {
 		fmt.Println("returning users from cache...")
