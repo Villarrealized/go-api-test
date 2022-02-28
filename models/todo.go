@@ -21,11 +21,11 @@ func FetchTodos() ([]Todo, error) {
 		return todosCache, nil
 	}
 
-	var filename string = "todos.json"
+	const filename string = "todos.json"
 
-	todosCache, err := fetchTodosFromDisk(filename)
+	todos, err := fetchTodosFromDisk(filename)
 	if err != nil {
-		todosCache, err = fetchTodosFromNetwork()
+		todos, err = fetchTodosFromNetwork()
 		if err != nil {
 			return nil, err
 		}
@@ -36,7 +36,24 @@ func FetchTodos() ([]Todo, error) {
 		}
 	}
 
+	todosCache = todos
+
 	return todosCache, nil
+}
+
+func FetchTodo(id int) (*Todo, error) {
+	todos, err := FetchTodos()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, todo := range todos {
+		if todo.Id == id {
+			return &todo, nil
+		}
+	}
+
+	return nil, &ModelMissingError{"No todo found for that id"}
 }
 
 func fetchTodosFromDisk(filename string) ([]Todo, error) {

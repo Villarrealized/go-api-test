@@ -23,11 +23,11 @@ func FetchUsers() ([]User, error) {
 		return usersCache, nil
 	}
 
-	var filename string = "users.json"
+	const filename string = "users.json"
 
-	usersCache, err := fetchUsersFromDisk(filename)
+	users, err := fetchUsersFromDisk(filename)
 	if err != nil {
-		usersCache, err = fetchUsersFromNetwork()
+		users, err = fetchUsersFromNetwork()
 		if err != nil {
 			return nil, err
 		}
@@ -38,7 +38,24 @@ func FetchUsers() ([]User, error) {
 		}
 	}
 
+	usersCache = users
+
 	return usersCache, nil
+}
+
+func FetchUser(id int) (*User, error) {
+	users, err := FetchUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.Id == id {
+			return &user, nil
+		}
+	}
+
+	return nil, &ModelMissingError{"No user found for that id"}
 }
 
 func fetchUsersFromDisk(filename string) ([]User, error) {

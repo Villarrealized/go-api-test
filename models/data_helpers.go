@@ -10,7 +10,7 @@ import (
 const dataPath string = "data/"
 
 func saveData(data interface{}, filename string) error {
-	jsonData, err := json.Marshal(data)
+	jsonBytes, err := json.Marshal(data)
 
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func saveData(data interface{}, filename string) error {
 		}
 	}
 
-	err = ioutil.WriteFile(dataPath+filename, jsonData, 0755)
+	err = ioutil.WriteFile(dataPath+filename, jsonBytes, 0755)
 	if err != nil {
 		return err
 	}
