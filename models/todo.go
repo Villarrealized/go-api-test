@@ -15,6 +15,8 @@ type Todo struct {
 
 var todosCache []Todo
 
+const todosFile string = "todos.json"
+
 /*
 Tries to return data first from the in-memory
 cache, then disk, and then the network.
@@ -25,16 +27,14 @@ func FetchTodos() ([]Todo, error) {
 		return todosCache, nil
 	}
 
-	const filename string = "todos.json"
-
-	todos, err := fetchTodosFromDisk(filename)
+	todos, err := fetchTodosFromDisk(todosFile)
 	if err != nil {
 		todos, err = fetchTodosFromNetwork()
 		if err != nil {
 			return nil, err
 		}
 
-		err = saveData(todosCache, filename)
+		err = saveData(todosCache, todosFile)
 		if err != nil {
 			return nil, err
 		}
@@ -58,6 +58,58 @@ func FetchTodo(id int) (*Todo, error) {
 	}
 
 	return nil, &ModelMissingError{"No todo found for that id"}
+}
+
+func CreateTodo(newTodo Todo) (*Todo, error) {
+
+	if newTodo.UserId <= 0 {
+		return nil, &ModelMissingRequiredFieldError{"userId field is required"}
+	}
+	if newTodo.Title == "" {
+		return nil, &ModelMissingRequiredFieldError{"title field is required"}
+	}
+
+	users, err := FetchUsers()
+	if err != nil {
+		return nil, err
+	}
+	var foundUser bool = false
+	for _, user := range users {
+		if user.Id == newTodo.UserId {
+			foundUser = true
+		}
+	}
+
+	if !foundUser {
+		return nil, &ModelRelationshipError{"That userId does not exist."}
+	}
+
+	id, err := getNextTodoId()
+	if err != nil {
+		return nil, err
+	}
+	newTodo.Id = id
+
+	// Update the cache
+	todosCache = append(todosCache, newTodo)
+
+	// Save to disk
+	err = saveData(todosCache, todosFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newTodo, nil
+}
+
+// Implementation is potentially not safe...could have conflicting ids
+func getNextTodoId() (int, error) {
+	todos, err := FetchTodos()
+	if err != nil {
+		return 0, err
+	}
+
+	return todos[len(todos)-1].Id + 1, nil
 }
 
 func fetchTodosFromDisk(filename string) ([]Todo, error) {

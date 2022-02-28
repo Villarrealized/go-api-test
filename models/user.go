@@ -17,6 +17,8 @@ type User struct {
 
 var usersCache []User
 
+const usersFile string = "users.json"
+
 /*
 Tries to return data first from the in-memory
 cache, then disk, and then the network.
@@ -27,16 +29,14 @@ func FetchUsers() ([]User, error) {
 		return usersCache, nil
 	}
 
-	const filename string = "users.json"
-
-	users, err := fetchUsersFromDisk(filename)
+	users, err := fetchUsersFromDisk(usersFile)
 	if err != nil {
 		users, err = fetchUsersFromNetwork()
 		if err != nil {
 			return nil, err
 		}
 
-		err = saveData(usersCache, filename)
+		err = saveData(usersCache, usersFile)
 		if err != nil {
 			return nil, err
 		}
@@ -60,6 +60,46 @@ func FetchUser(id int) (*User, error) {
 	}
 
 	return nil, &ModelMissingError{"No user found for that id"}
+}
+
+func CreateUser(newUser User) (*User, error) {
+	users, err := FetchUsers()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, user := range users {
+		if user.Username == newUser.Username {
+			return nil, &UniqueViolationError{"That username already exists."}
+		}
+	}
+
+	id, err := getNextUserId()
+	if err != nil {
+		return nil, err
+	}
+	newUser.Id = id
+
+	// Update the cache
+	usersCache = append(usersCache, newUser)
+
+	// Save to disk
+	err = saveData(usersCache, usersFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newUser, nil
+}
+
+// Implementation is potentially not safe...could have conflicting ids
+func getNextUserId() (int, error) {
+	users, err := FetchUsers()
+	if err != nil {
+		return 0, err
+	}
+
+	return users[len(users)-1].Id + 1, nil
 }
 
 func fetchUsersFromDisk(filename string) ([]User, error) {

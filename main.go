@@ -50,10 +50,39 @@ func UsersHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)
+			writeJson(writer, jsonError{"Internal server error"})
 			return
 		}
 
 		writeJson(writer, users)
+		return
+
+	case http.MethodPost:
+		var user models.User
+		decoder := json.NewDecoder(request.Body)
+		err := decoder.Decode(&user)
+		if err != nil {
+			log.Println(err)
+			writer.WriteHeader(http.StatusUnprocessableEntity)
+			writeJson(writer, jsonError{"Invalid data could not be used to create a User"})
+			return
+		}
+
+		newUser, err := models.CreateUser(user)
+		if err != nil {
+			log.Println(err)
+			switch typedErr := err.(type) {
+			case *models.UniqueViolationError:
+				writer.WriteHeader(http.StatusUnprocessableEntity)
+				writeJson(writer, jsonError{typedErr.Message})
+			default:
+				writer.WriteHeader(http.StatusInternalServerError)
+				writeJson(writer, jsonError{"Internal server error"})
+			}
+			return
+		}
+
+		writeJson(writer, newUser)
 		return
 
 	default:
@@ -94,10 +123,42 @@ func TodosHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)
+			writeJson(writer, jsonError{"Internal server error"})
 			return
 		}
 
 		writeJson(writer, todos)
+		return
+
+	case http.MethodPost:
+		var todo models.Todo
+		decoder := json.NewDecoder(request.Body)
+		err := decoder.Decode(&todo)
+		if err != nil {
+			log.Println(err)
+			writer.WriteHeader(http.StatusUnprocessableEntity)
+			writeJson(writer, jsonError{"Invalid data could not be used to create a Todo"})
+			return
+		}
+
+		newTodo, err := models.CreateTodo(todo)
+		if err != nil {
+			log.Println(err)
+			switch typedErr := err.(type) {
+			case *models.ModelMissingRequiredFieldError:
+				writer.WriteHeader(http.StatusUnprocessableEntity)
+				writeJson(writer, jsonError{typedErr.Message})
+			case *models.ModelRelationshipError:
+				writer.WriteHeader(http.StatusUnprocessableEntity)
+				writeJson(writer, jsonError{typedErr.Message})
+			default:
+				writer.WriteHeader(http.StatusInternalServerError)
+				writeJson(writer, jsonError{"Internal server error"})
+			}
+			return
+		}
+
+		writeJson(writer, newTodo)
 		return
 
 	default:
@@ -156,23 +217,22 @@ func handleFetchRecordError(err error, writer http.ResponseWriter) {
 		case *models.ModelMissingError:
 			writer.WriteHeader(http.StatusNotFound)
 			writeJson(writer, jsonError{typedErr.Message})
-			return
 		default:
 			writer.WriteHeader(http.StatusInternalServerError)
 			writeJson(writer, jsonError{"Internal server error"})
-			return
 		}
 	}
 }
 
 func writeJson(writer http.ResponseWriter, data interface{}) {
+	writer.Header().Set("Content-Type", "application/json")
 	jsonBytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Println(err)
 		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Write([]byte(`{ "error": "Internal server error" }`))
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(jsonBytes)
 }
