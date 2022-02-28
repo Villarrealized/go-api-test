@@ -6,6 +6,12 @@ The HTTP method and route handling could be improved by using a package like `gi
 
 But the purpose of this project is simply to show what can be done with the standard `net/http` package. 
 
+## Concepts covered
+- Read and write data to disk
+- Fetch data from an API
+- Encode and Decode JSON data
+- Creating an http server and handling GET and POST requests
+
 ## Usage
 Run `go run .` and navigate to `localhost:8080/api/users` in your browser to start
 
