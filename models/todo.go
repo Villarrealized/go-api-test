@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/villarrealized/go-api-test/helpers"
 )
 
 type Todo struct {
@@ -34,7 +36,7 @@ func FetchTodos() ([]Todo, error) {
 			return nil, err
 		}
 
-		err = saveData(todosCache, todosFile)
+		err = helpers.SaveData(todos, todosFile)
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +96,7 @@ func CreateTodo(newTodo Todo) (*Todo, error) {
 	todosCache = append(todosCache, newTodo)
 
 	// Save to disk
-	err = saveData(todosCache, todosFile)
+	err = helpers.SaveData(todosCache, todosFile)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +115,7 @@ func getNextTodoId() (int, error) {
 }
 
 func fetchTodosFromDisk(filename string) ([]Todo, error) {
-	data, err := readData(filename)
+	data, err := helpers.ReadData(filename)
 	if err != nil {
 		return nil, err
 	}

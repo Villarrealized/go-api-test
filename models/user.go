@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/villarrealized/go-api-test/helpers"
 )
 
 type User struct {
@@ -36,7 +38,7 @@ func FetchUsers() ([]User, error) {
 			return nil, err
 		}
 
-		err = saveData(usersCache, usersFile)
+		err = helpers.SaveData(users, usersFile)
 		if err != nil {
 			return nil, err
 		}
@@ -63,6 +65,14 @@ func FetchUser(id int) (*User, error) {
 }
 
 func CreateUser(newUser User) (*User, error) {
+
+	if newUser.Name == "" {
+		return nil, &ModelMissingRequiredFieldError{"name field is required"}
+	}
+	if newUser.Username == "" {
+		return nil, &ModelMissingRequiredFieldError{"username field is required"}
+	}
+
 	users, err := FetchUsers()
 	if err != nil {
 		return nil, err
@@ -84,7 +94,7 @@ func CreateUser(newUser User) (*User, error) {
 	usersCache = append(usersCache, newUser)
 
 	// Save to disk
-	err = saveData(usersCache, usersFile)
+	err = helpers.SaveData(usersCache, usersFile)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +113,7 @@ func getNextUserId() (int, error) {
 }
 
 func fetchUsersFromDisk(filename string) ([]User, error) {
-	data, err := readData(filename)
+	data, err := helpers.ReadData(filename)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-package models
+package helpers
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 
 const dataPath string = "data/"
 
-func saveData(data interface{}, filename string) error {
+func SaveData(data interface{}, filename string) error {
 	jsonBytes, err := json.Marshal(data)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func saveData(data interface{}, filename string) error {
 	return nil
 }
 
-func readData(filename string) ([]byte, error) {
+func ReadData(filename string) ([]byte, error) {
 	path := dataPath + filename
 
 	data, err := os.ReadFile(path)

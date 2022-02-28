@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -35,9 +36,11 @@ func main() {
 	mux.HandleFunc(todoUrl, TodoHandler)
 
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    "0.0.0.0:8080",
 		Handler: mux,
 	}
+
+	fmt.Printf("Listening on %s\n", server.Addr)
 	server.ListenAndServe()
 }
 
@@ -64,7 +67,7 @@ func UsersHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusUnprocessableEntity)
-			writeJson(writer, jsonError{"Invalid data could not be used to create a User"})
+			writeJson(writer, jsonError{"Invalid json data"})
 			return
 		}
 
@@ -72,6 +75,9 @@ func UsersHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Println(err)
 			switch typedErr := err.(type) {
+			case *models.ModelMissingRequiredFieldError:
+				writer.WriteHeader(http.StatusUnprocessableEntity)
+				writeJson(writer, jsonError{typedErr.Message})
 			case *models.UniqueViolationError:
 				writer.WriteHeader(http.StatusUnprocessableEntity)
 				writeJson(writer, jsonError{typedErr.Message})
@@ -137,7 +143,7 @@ func TodosHandler(writer http.ResponseWriter, request *http.Request) {
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusUnprocessableEntity)
-			writeJson(writer, jsonError{"Invalid data could not be used to create a Todo"})
+			writeJson(writer, jsonError{"Invalid json data"})
 			return
 		}
 
